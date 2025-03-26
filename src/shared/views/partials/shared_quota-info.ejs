@@ -1,0 +1,74 @@
+<p>
+  Next refresh: <time><%- nextQuotaRefresh %></time>
+</p>
+<%
+const quotaTableId = Math.random().toString(36).slice(2);
+ %>
+<div>
+  <label for="quota-family-filter-<%= quotaTableId %>">Filter:</label>
+  <input type="text" id="quota-family-filter-<%= quotaTableId %>" oninput="filterQuotaTable(this, '<%= quotaTableId %>')" />
+</div>
+<table class="striped" id="quota-table-<%= quotaTableId %>">
+  <thead>
+    <tr>
+      <th scope="col">Model Family</th>
+      <th scope="col">Usage</th>
+      <% if (showTokenCosts) { %>
+      <th scope="col">Cost</th>
+      <% } %>
+      <th scope="col">Limit</th>
+      <th scope="col">Remaining</th>
+      <th scope="col" colspan="<%= showRefreshEdit ? 2 : 1 %>">Refresh Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% Object.entries(quota).forEach(([key, limit]) => { %>
+    <tr>
+      <th scope="row"><%- key %></th>
+      <td><%- prettyTokens(user.tokenCounts[key]) %></td>
+      <% if (showTokenCosts) { %>
+      <td>$<%- tokenCost(key, user.tokenCounts[key]).toFixed(2) %></td>
+      <% } %>
+      <% if (!user.tokenLimits[key]) { %>
+      <td colspan="2" style="text-align: center">unlimited</td>
+      <% } else { %>
+      <td><%- prettyTokens(user.tokenLimits[key]) %></td>
+      <td><%- prettyTokens(user.tokenLimits[key] - user.tokenCounts[key]) %></td>
+      <% } %>
+      <% if (user.type === "temporary") { %>
+      <td>N/A</td>
+      <% } else { %>
+      <td><%- prettyTokens(user.tokenRefresh[key] || quota[key]) %></td>
+      <% } %>
+      <% if (showRefreshEdit) { %>
+      <td class="actions">
+        <a
+          title="Edit"
+          id="edit-refresh"
+          href="#"
+          data-field="tokenRefresh_<%= key %>"
+          data-token="<%= user.token %>"
+          data-modelFamily="<%= key %>"
+          >✏️</a
+        >
+      </td>
+      <% } %>
+    </tr>
+    <% }) %>
+  </tbody>
+</table>
+<script>
+  function filterQuotaTable(input, tableId) {
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById("quota-table-" + tableId);
+    const rows = table.querySelectorAll("tbody tr");
+    for (const row of rows) {
+      const modelFamily = row.querySelector("th").textContent;
+      if (modelFamily.toLowerCase().includes(filter)) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    }
+  }
+</script>
