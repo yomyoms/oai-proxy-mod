@@ -428,6 +428,22 @@ type Config = {
   */
   openaiModerationModel?: string;
   /**
+  * Whether to enable Azure Content Moderator instead of OpenAI
+  */
+  useAzureContentModerator?: boolean;
+  /**
+  * Azure Content Moderator subscription key
+  */
+  azureContentModeratorKey?: string;
+  /**
+  * Azure Content Moderator endpoint (e.g. https://YOUR-RESOURCE-NAME.cognitiveservices.azure.com)
+  */
+  azureContentModeratorEndpoint?: string;
+  /**
+  * Language for Azure Content Moderator (default: eng)
+  */
+  azureContentModeratorLanguage?: string;
+  /**
   * Moderation thresholds for content filtering
   */
   moderationThresholds: {
@@ -556,8 +572,12 @@ export const config: Config = {
     proxyUrl: getEnvWithDefault("HTTP_AGENT_PROXY_URL", undefined),
   },
   allowOpenAIModeration: getEnvWithDefault("ALLOW_OPENAI_MODERATION", false),
-  openaiModerationKey: getEnvWithDefault("OPENAI_MODERATION_KEY", ""),
-  openaiModerationModel: getEnvWithDefault("OPENAI_MODERATION_MODEL", "omni-moderation-latest"),
+  openaiModerationKey: process.env.OPENAI_MODERATION_KEY,
+  openaiModerationModel: process.env.OPENAI_MODERATION_MODEL,
+  useAzureContentModerator: getEnvWithDefault("USE_AZURE_CONTENT_MODERATOR", false),
+  azureContentModeratorKey: process.env.AZURE_CONTENT_MODERATOR_KEY,
+  azureContentModeratorEndpoint: process.env.AZURE_CONTENT_MODERATOR_ENDPOINT,
+  azureContentModeratorLanguage: process.env.AZURE_CONTENT_MODERATOR_LANGUAGE || "eng",
   moderationThresholds: {
     sexual: getEnvWithDefault("MODERATION_THRESHOLD_SEXUAL", 1),
     'sexual/minors': getEnvWithDefault("MODERATION_THRESHOLD_SEXUAL_MINORS", 1),
@@ -772,6 +792,8 @@ export const OMITTED_KEYS = [
   "adminWhitelist",
   "ipBlacklist",
   "powTokenPurgeHours",
+  "tokenQuota",
+  "azureContentModeratorKey",
 ] satisfies (keyof Config)[];
 type OmitKeys = (typeof OMITTED_KEYS)[number];
 
