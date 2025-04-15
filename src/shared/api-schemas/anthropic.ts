@@ -19,6 +19,10 @@ const AnthropicV1BaseSchema = z
     top_k: z.coerce.number().optional(),
     top_p: z.coerce.number().optional(),
     metadata: z.object({ user_id: z.string().optional() }).optional(),
+    thinking: z.object({
+      type: z.enum(["enabled"]),
+      budget_tokens: z.number().int()
+    }).optional(),
   })
   .strip();
 
