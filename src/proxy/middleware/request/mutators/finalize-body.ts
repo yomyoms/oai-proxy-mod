@@ -21,12 +21,25 @@ export const finalizeBody: ProxyReqMutator = (manager) => {
             thinkingParam.type === 'enabled' && 
             typeof thinkingParam.budget_tokens === 'number') {
           // It's already correctly structured, keep it
+          
+          // Per Anthropic docs: max_tokens must be greater than thinking.budget_tokens
+          // If max_tokens is less than or equal to budget_tokens, adjust it
+          if (req.body.max_tokens <= thinkingParam.budget_tokens) {
+            // Make max_tokens 1000 tokens more than budget_tokens to ensure it works
+            req.body.max_tokens = thinkingParam.budget_tokens + 1000;
+          }
         } else if (typeof thinkingParam === 'object') {
           // Fix structure if possible
+          const budgetTokens = thinkingParam.budget_tokens || 16000;
           req.body.thinking = {
             type: 'enabled',
-            budget_tokens: thinkingParam.budget_tokens || 16000
+            budget_tokens: budgetTokens
           };
+          
+          // Ensure max_tokens is greater than budget_tokens
+          if (req.body.max_tokens <= budgetTokens) {
+            req.body.max_tokens = budgetTokens + 1000;
+          }
         }
       }
     }
