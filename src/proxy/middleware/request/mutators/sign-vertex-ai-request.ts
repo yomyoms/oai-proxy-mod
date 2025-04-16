@@ -39,6 +39,10 @@ export const signGcpRequest: ProxyReqMutator = async (manager) => {
   // TODO: This should happen in transform-outbound-payload.ts
   // TODO: Support tools
   let strippedParams: Record<string, unknown>;
+  
+  // Preserve thinking parameter if present
+  const thinkingParam = req.body.thinking;
+  
   strippedParams = AnthropicV1MessagesSchema.pick({
     messages: true,
     system: true,
@@ -48,10 +52,15 @@ export const signGcpRequest: ProxyReqMutator = async (manager) => {
     top_k: true,
     top_p: true,
     stream: true,
-    thinking: true,
   })
     .strip()
     .parse(req.body);
+    
+  // Add back thinking parameter if it was present
+  if (thinkingParam) {
+    strippedParams.thinking = thinkingParam;
+  }
+    
   strippedParams.anthropic_version = "vertex-2023-10-16";
 
   const credential = await getCredentialsFromGcpKey(key);

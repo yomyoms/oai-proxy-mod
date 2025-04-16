@@ -35,8 +35,15 @@ export const transformOutboundPayload: RequestPreprocessor = async (req) => {
   // target API format. We don't need to transform them.
   const isNativePrompt = req.inboundApi === req.outboundApi;
   if (isNativePrompt) {
+    // Save the thinking parameter if present
+    const thinkingParam = req.body.thinking;
     const result = API_REQUEST_VALIDATORS[req.inboundApi].parse(req.body);
     req.body = result;
+    
+    // Restore the thinking parameter if it was present but stripped by validation
+    if (thinkingParam && !req.body.thinking) {
+      req.body.thinking = thinkingParam;
+    }
     return;
   }
 

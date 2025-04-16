@@ -122,6 +122,9 @@ function getStrictlyValidatedBodyForAws(req: Readonly<Request>): unknown {
         .parse(req.body);
       break;
     case "anthropic-chat":
+      // Preserve thinking parameter if present
+      const thinkingParam = req.body.thinking;
+      
       strippedParams = AnthropicV1MessagesSchema.pick({
         messages: true,
         system: true,
@@ -130,10 +133,15 @@ function getStrictlyValidatedBodyForAws(req: Readonly<Request>): unknown {
         temperature: true,
         top_k: true,
         top_p: true,
-        thinking: true,
       })
         .strip()
         .parse(req.body);
+        
+      // Add back thinking parameter if it was present
+      if (thinkingParam) {
+        strippedParams.thinking = thinkingParam;
+      }
+      
       strippedParams.anthropic_version = "bedrock-2023-05-31";
       break;
     case "mistral-ai":
