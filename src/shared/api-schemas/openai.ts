@@ -78,6 +78,10 @@ export const OpenAIV1ChatCompletionSchema = z
     tool_choice: z.any().optional(),
     function_choice: z.any().optional(),
     response_format: z.any(),
+    thinking: z.object({
+      type: z.enum(["enabled"]),
+      budget_tokens: z.number().int()
+    }).optional(),
   })
   // Tool usage must be enabled via config because we currently have no way to
   // track quota usage for them or enforce limits.

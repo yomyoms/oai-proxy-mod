@@ -48,6 +48,7 @@ export const signGcpRequest: ProxyReqMutator = async (manager) => {
     top_k: true,
     top_p: true,
     stream: true,
+    thinking: true,
   })
     .strip()
     .parse(req.body);

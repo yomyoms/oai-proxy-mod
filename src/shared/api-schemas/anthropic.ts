@@ -129,6 +129,7 @@ export const transformOpenAIToAnthropicChat: APIFormatTransformer<
     stop_sequences:
       typeof rest.stop === "string" ? [rest.stop] : rest.stop || undefined,
     ...(rest.user ? { metadata: { user_id: rest.user } } : {}),
+    ...(rest.thinking ? { thinking: rest.thinking } : {}),
     // Anthropic supports top_k, but OpenAI does not
     // OpenAI supports frequency_penalty, presence_penalty, logit_bias, n, seed,
     // and function calls, but Anthropic does not.
@@ -239,6 +240,7 @@ export const transformAnthropicTextToAnthropicChat: APIFormatTransformer<
     system,
     messages,
     max_tokens: max_tokens_to_sample,
+    ...(rest.thinking ? { thinking: rest.thinking } : {}),
     ...rest,
   };
 };

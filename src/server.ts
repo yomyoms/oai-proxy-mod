@@ -24,6 +24,7 @@ import { checkOrigin } from "./proxy/check-origin";
 import { sendErrorToClient } from "./proxy/middleware/response/error-generator";
 import { initializeDatabase, getDatabase } from "./shared/database";
 import { initializeFirebase } from "./shared/firebase";
+import { router as debugRouter } from "./proxy/routes/debug";
 
 const PORT = config.port;
 const BIND_ADDRESS = config.bindAddress;
@@ -100,6 +101,7 @@ app.use((req, _, next) => {
 });
 app.use(config.proxyEndpointRoute, proxyRouter);
 app.use("/user", userRouter);
+app.use("/debug", debugRouter);
 if (config.staticServiceInfo) {
   app.get("/", (_req, res) => res.sendStatus(200));
 } else {

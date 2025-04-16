@@ -130,6 +130,7 @@ function getStrictlyValidatedBodyForAws(req: Readonly<Request>): unknown {
         temperature: true,
         top_k: true,
         top_p: true,
+        thinking: true,
       })
         .strip()
         .parse(req.body);
