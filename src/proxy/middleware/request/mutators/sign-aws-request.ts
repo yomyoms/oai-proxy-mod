@@ -103,55 +103,7 @@ async function sign(request: HttpRequest, credential: Credential) {
 }
 
 function getStrictlyValidatedBodyForAws(req: Readonly<Request>): unknown {
-  // AWS uses vendor API formats but imposes additional (more strict) validation
-  // rules, namely that extraneous parameters are not allowed. We will validate
-  // using the vendor's zod schema but apply `.strip` to ensure that any
-  // extraneous parameters are removed.
-  let strippedParams: Record<string, unknown> = {};
-  switch (req.outboundApi) {
-    case "anthropic-text":
-      strippedParams = AnthropicV1TextSchema.pick({
-        prompt: true,
-        max_tokens_to_sample: true,
-        stop_sequences: true,
-        temperature: true,
-        top_k: true,
-        top_p: true,
-      })
-        .strip()
-        .parse(req.body);
-      break;
-    case "anthropic-chat":
-      // Preserve thinking parameter if present
-      const thinkingParam = req.body.thinking;
-      
-      strippedParams = AnthropicV1MessagesSchema.pick({
-        messages: true,
-        system: true,
-        max_tokens: true,
-        stop_sequences: true,
-        temperature: true,
-        top_k: true,
-        top_p: true,
-      })
-        .strip()
-        .parse(req.body);
-        
-      // Add back thinking parameter if it was present
-      if (thinkingParam) {
-        strippedParams.thinking = thinkingParam;
-      }
-      
-      strippedParams.anthropic_version = "bedrock-2023-05-31";
-      break;
-    case "mistral-ai":
-      strippedParams = AWSMistralV1ChatCompletionsSchema.parse(req.body);
-      break;
-    case "mistral-text":
-      strippedParams = AWSMistralV1TextCompletionsSchema.parse(req.body);
-      break;
-    default:
-      throw new Error("Unexpected outbound API for AWS.");
-  }
-  return strippedParams;
+  // In pure passthrough mode - just return the original body
+  // Skip all validation and stripping of parameters
+  return req.body;
 }

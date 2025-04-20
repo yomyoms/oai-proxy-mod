@@ -62,15 +62,8 @@ const gcpBlockingResponseHandler: ProxyResHandlerWithBody = async (
     throw new Error("Expected body to be an object");
   }
 
-  let newBody = body;
-  switch (`${req.inboundApi}<-${req.outboundApi}`) {
-    case "openai<-anthropic-chat":
-      req.log.info("Transforming Anthropic Chat back to OpenAI format");
-      newBody = transformAnthropicChatResponseToOpenAI(body);
-      break;
-  }
-
-  res.status(200).json({ ...newBody, proxy: body.proxy });
+  // Pure passthrough - no transformations
+  res.status(200).json(body);
 };
 
 const gcpProxy = createQueuedProxyMiddleware({

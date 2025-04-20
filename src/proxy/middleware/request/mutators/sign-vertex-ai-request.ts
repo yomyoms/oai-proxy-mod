@@ -36,32 +36,10 @@ export const signGcpRequest: ProxyReqMutator = async (manager) => {
   manager.setKey(key);
   req.log.info({ key: key.hash, model }, "Assigned GCP key to request");
 
-  // TODO: This should happen in transform-outbound-payload.ts
-  // TODO: Support tools
-  let strippedParams: Record<string, unknown>;
-  
-  // Preserve thinking parameter if present
-  const thinkingParam = req.body.thinking;
-  
-  strippedParams = AnthropicV1MessagesSchema.pick({
-    messages: true,
-    system: true,
-    max_tokens: true,
-    stop_sequences: true,
-    temperature: true,
-    top_k: true,
-    top_p: true,
-    stream: true,
-  })
-    .strip()
-    .parse(req.body);
-    
-  // Add back thinking parameter if it was present
-  if (thinkingParam) {
-    strippedParams.thinking = thinkingParam;
-  }
-    
-  strippedParams.anthropic_version = "vertex-2023-10-16";
+  // Pure passthrough mode - don't validate or strip parameters
+  // Just add the anthropic_version parameter
+  const requestBody = { ...req.body };
+  requestBody.anthropic_version = "vertex-2023-10-16";
 
   const credential = await getCredentialsFromGcpKey(key);
 
@@ -80,6 +58,6 @@ export const signGcpRequest: ProxyReqMutator = async (manager) => {
       ["content-type"]: "application/json",
       ["authorization"]: `Bearer ${key.accessToken}`,
     },
-    body: JSON.stringify(strippedParams),
+    body: JSON.stringify(requestBody),
   });
 };

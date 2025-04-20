@@ -13,53 +13,21 @@ import { RequestPreprocessor } from "../index";
 
 /** Transforms an incoming request body to one that matches the target API. */
 export const transformOutboundPayload: RequestPreprocessor = async (req) => {
+  // Skip all validation and transformation - pure passthrough mode
+  // We still handle retry count to avoid duplicate processing
   const alreadyTransformed = req.retryCount > 0;
-  const notTransformable =
-    !isTextGenerationRequest(req) && !isImageGenerationRequest(req);
-
   if (alreadyTransformed) {
     return;
-  } else if (notTransformable) {
-    // This is probably an indication of a bug in the proxy.
-    const { inboundApi, outboundApi, method, path } = req;
-    req.log.warn(
-      { inboundApi, outboundApi, method, path },
-      "`transformOutboundPayload` called on a non-transformable request."
-    );
-    return;
   }
-
-  applyMistralPromptFixes(req);
-
-  // Native prompts are those which were already provided by the client in the
-  // target API format. We don't need to transform them.
-  const isNativePrompt = req.inboundApi === req.outboundApi;
-  if (isNativePrompt) {
-    // Save the thinking parameter if present
-    const thinkingParam = req.body.thinking;
-    const result = API_REQUEST_VALIDATORS[req.inboundApi].parse(req.body);
-    req.body = result;
-    
-    // Restore the thinking parameter if it was present but stripped by validation
-    if (thinkingParam && !req.body.thinking) {
-      req.body.thinking = thinkingParam;
-    }
-    return;
-  }
-
-  // Prompt requires translation from one API format to another.
-  const transformation = `${req.inboundApi}->${req.outboundApi}` as const;
-  const transFn = API_REQUEST_TRANSFORMERS[transformation];
-
-  if (transFn) {
-    req.log.info({ transformation }, "Transforming request...");
-    req.body = await transFn(req);
-    return;
-  }
-
-  throw new BadRequestError(
-    `${transformation} proxying is not supported. Make sure your client is configured to send requests in the correct format and to the correct endpoint.`
+  
+  // Log that we're in passthrough mode
+  req.log.info(
+    { inboundApi: req.inboundApi, outboundApi: req.outboundApi },
+    "Passthrough mode - no validation or transformation applied"
   );
+  
+  // Keep the original body intact without validation
+  return;
 };
 
 // handles weird cases that don't fit into our abstractions

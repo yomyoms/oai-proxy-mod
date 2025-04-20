@@ -75,23 +75,8 @@ const anthropicBlockingResponseHandler: ProxyResHandlerWithBody = async (
     throw new Error("Expected body to be an object");
   }
 
-  let newBody = body;
-  switch (`${req.inboundApi}<-${req.outboundApi}`) {
-    case "openai<-anthropic-text":
-      req.log.info("Transforming Anthropic Text back to OpenAI format");
-      newBody = transformAnthropicTextResponseToOpenAI(body, req);
-      break;
-    case "openai<-anthropic-chat":
-      req.log.info("Transforming Anthropic Chat back to OpenAI format");
-      newBody = transformAnthropicChatResponseToOpenAI(body);
-      break;
-    case "anthropic-text<-anthropic-chat":
-      req.log.info("Transforming Anthropic Chat back to Anthropic chat format");
-      newBody = transformAnthropicChatResponseToAnthropicText(body);
-      break;
-  }
-
-  res.status(200).json({ ...newBody, proxy: body.proxy });
+  // Pure passthrough - no transformations
+  res.status(200).json(body);
 };
 
 function flattenChatResponse(
