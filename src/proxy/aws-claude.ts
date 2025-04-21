@@ -93,10 +93,21 @@ const oaiToNativePreprocessor = createPreprocessorMiddleware({
 });
 
 /**
- * Routes an OpenAI prompt directly without API transformation
+ * Routes an OpenAI prompt directly without API transformation, except for thinking parameter
  */
 const preprocessOpenAICompatRequest: RequestHandler = (req, res, next) => {
-  oaiToNativePreprocessor(req, res, next);
+  // If thinking parameter is present, we need to ensure it's properly handled
+  if (req.body.thinking !== undefined) {
+    const thinkingPreprocessor = createPreprocessorMiddleware({
+      inApi: "openai",
+      outApi: "anthropic-chat",
+      service: "aws"
+    }, { afterTransform: [maybeReassignModel] });
+    thinkingPreprocessor(req, res, next);
+  } else {
+    // Otherwise use the default passthrough
+    oaiToNativePreprocessor(req, res, next);
+  }
 };
 
 const awsClaudeRouter = Router();

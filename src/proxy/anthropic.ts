@@ -181,6 +181,15 @@ function selectUpstreamPath(manager: ProxyReqManager) {
   req.log.debug({ pathname }, "Anthropic path filter");
   const isText = req.outboundApi === "anthropic-text";
   const isChat = req.outboundApi === "anthropic-chat";
+  const hasThinking = req.body.thinking !== undefined;
+
+  // Always ensure we're using the messages endpoint when thinking is enabled
+  if (hasThinking) {
+    manager.setPath("/v1/messages");
+    req.log.debug({ thinking: true }, "Routing to messages endpoint for thinking parameter");
+    return;
+  }
+
   if (isChat && pathname === "/v1/complete") {
     manager.setPath("/v1/messages");
   }
@@ -233,10 +242,46 @@ const textToChatPreprocessor = createPreprocessorMiddleware({
 });
 
 /**
- * Routes an OpenAI prompt directly to Anthropic without transformation
+ * Determines the correct API format based on request body content
+ */
+function determineApiFormat(req: Request): { 
+  inApi: "openai"; 
+  outApi: "openai" | "anthropic-chat"; 
+  service: "anthropic"; 
+} {
+  // If thinking parameter is present, we need to use anthropic-chat output format
+  if (req.body.thinking !== undefined) {
+    return {
+      inApi: "openai",
+      outApi: "anthropic-chat",
+      service: "anthropic"
+    };
+  }
+  
+  // Otherwise use default passthrough
+  return {
+    inApi: "openai",
+    outApi: "openai", 
+    service: "anthropic"
+  };
+}
+
+/**
+ * Routes an OpenAI prompt directly to Anthropic, with special handling for thinking parameter
  */
 const preprocessOpenAICompatRequest: RequestHandler = (req, res, next) => {
-  oaiToNativePreprocessor(req, res, next);
+  // If thinking parameter is present, we need to use a different preprocessor
+  if (req.body.thinking !== undefined) {
+    const thinkingPreprocessor = createPreprocessorMiddleware({
+      inApi: "openai",
+      outApi: "anthropic-chat",
+      service: "anthropic"
+    });
+    thinkingPreprocessor(req, res, next);
+  } else {
+    // Otherwise use the default passthrough
+    oaiToNativePreprocessor(req, res, next);
+  }
 };
 
 const anthropicRouter = Router();
