@@ -75,8 +75,8 @@ const anthropicBlockingResponseHandler: ProxyResHandlerWithBody = async (
     throw new Error("Expected body to be an object");
   }
 
-  // Pure passthrough - no transformations
-  res.status(200).json(body);
+  // Complete raw passthrough - send the exact response back
+  res.status(200).send(body);
 };
 
 function flattenChatResponse(
@@ -212,6 +212,20 @@ const nativeTextPreprocessor = createPreprocessorMiddleware({
   service: "anthropic",
 });
 
+// Make OpenAI compatibility preprocessors use the native API format
+const oaiToNativePreprocessor = createPreprocessorMiddleware({
+  inApi: "openai",
+  outApi: "openai",
+  service: "anthropic",
+});
+
+/**
+ * Routes text completion prompts directly without translation
+ */
+const preprocessAnthropicTextRequest: RequestHandler = (req, res, next) => {
+  nativeTextPreprocessor(req, res, next);
+};
+
 const textToChatPreprocessor = createPreprocessorMiddleware({
   inApi: "anthropic-text",
   outApi: "anthropic-chat",
@@ -219,40 +233,10 @@ const textToChatPreprocessor = createPreprocessorMiddleware({
 });
 
 /**
- * Routes text completion prompts to anthropic-chat if they need translation
- * (claude-3 based models do not support the old text completion endpoint).
- */
-const preprocessAnthropicTextRequest: RequestHandler = (req, res, next) => {
-  if (req.body.model?.startsWith("claude-3")) {
-    textToChatPreprocessor(req, res, next);
-  } else {
-    nativeTextPreprocessor(req, res, next);
-  }
-};
-
-const oaiToTextPreprocessor = createPreprocessorMiddleware({
-  inApi: "openai",
-  outApi: "anthropic-text",
-  service: "anthropic",
-});
-
-const oaiToChatPreprocessor = createPreprocessorMiddleware({
-  inApi: "openai",
-  outApi: "anthropic-chat",
-  service: "anthropic",
-});
-
-/**
- * Routes an OpenAI prompt to either the legacy Claude text completion endpoint
- * or the new Claude chat completion endpoint, based on the requested model.
+ * Routes an OpenAI prompt directly to Anthropic without transformation
  */
 const preprocessOpenAICompatRequest: RequestHandler = (req, res, next) => {
-  maybeReassignModel(req);
-  if (req.body.model?.includes("claude-3")) {
-    oaiToChatPreprocessor(req, res, next);
-  } else {
-    oaiToTextPreprocessor(req, res, next);
-  }
+  oaiToNativePreprocessor(req, res, next);
 };
 
 const anthropicRouter = Router();

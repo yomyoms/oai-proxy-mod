@@ -71,9 +71,8 @@ export const createOnProxyResHandler = (apiMiddleware: ProxyResMiddleware) => {
     req: Request,
     res: Response
   ) => {
-    // Proxied request has by now been sent to the upstream API, so we revert
-    // tracked mutations that were only needed to send the request.
-    // This generally means path adjustment, headers, and body serialization.
+    // Reverted back to the original implementation to avoid introducing errors
+    // but removed the injectProxyInfo middleware
     if (req.changeManager) {
       req.changeManager.revert();
     }
@@ -103,7 +102,7 @@ export const createOnProxyResHandler = (apiMiddleware: ProxyResMiddleware) => {
       } else {
         middlewareStack.push(
           trackKeyRateLimit,
-          injectProxyInfo,
+          // injectProxyInfo removed - this was adding the proxy metadata
           handleUpstreamErrors,
           countResponseTokens,
           incrementUsage,
@@ -689,38 +688,6 @@ const copyHttpHeaders: ProxyResHandlerWithBody = async (
     if (omittedHeaders.has(key)) return;
     res.setHeader(key, proxyRes.headers[key] as string);
   });
-};
-
-/**
- * Injects metadata into the response, such as the tokenizer used, logging
- * status, upstream API endpoint used, and whether the input prompt was modified
- * or transformed.
- * Only used for non-streaming requests.
- */
-const injectProxyInfo: ProxyResHandlerWithBody = async (
-  _proxyRes,
-  req,
-  res,
-  body
-) => {
-  const { service, inboundApi, outboundApi, tokenizerInfo } = req;
-  const native = inboundApi === outboundApi;
-  const info: any = {
-    logged: config.promptLogging,
-    tokens: tokenizerInfo,
-    service,
-    in_api: inboundApi,
-    out_api: outboundApi,
-    prompt_transformed: !native,
-  };
-
-  if (req.query?.debug?.length) {
-    info.final_request_body = req.signedRequest?.body || req.body;
-  }
-
-  if (typeof body === "object") {
-    body.proxy = info;
-  }
 };
 
 function getAwsErrorType(header: string | string[] | undefined) {

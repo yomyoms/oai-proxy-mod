@@ -62,8 +62,8 @@ const gcpBlockingResponseHandler: ProxyResHandlerWithBody = async (
     throw new Error("Expected body to be an object");
   }
 
-  // Pure passthrough - no transformations
-  res.status(200).json(body);
+  // Complete raw passthrough - send the exact response back
+  res.status(200).send(body);
 };
 
 const gcpProxy = createQueuedProxyMiddleware({
@@ -75,17 +75,18 @@ const gcpProxy = createQueuedProxyMiddleware({
   blockingResponseHandler: gcpBlockingResponseHandler,
 });
 
-const oaiToChatPreprocessor = createPreprocessorMiddleware(
-  { inApi: "openai", outApi: "anthropic-chat", service: "gcp" },
-  { afterTransform: [maybeReassignModel] }
-);
+// Make OpenAI compatibility preprocessors use the native API format
+const oaiToNativePreprocessor = createPreprocessorMiddleware({
+  inApi: "openai",
+  outApi: "openai",
+  service: "gcp",
+});
 
 /**
- * Routes an OpenAI prompt to either the legacy Claude text completion endpoint
- * or the new Claude chat completion endpoint, based on the requested model.
+ * Routes an OpenAI prompt directly without API transformation
  */
 const preprocessOpenAICompatRequest: RequestHandler = (req, res, next) => {
-  oaiToChatPreprocessor(req, res, next);
+  oaiToNativePreprocessor(req, res, next);
 };
 
 const gcpRouter = Router();

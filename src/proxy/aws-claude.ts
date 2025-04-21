@@ -23,8 +23,8 @@ const awsBlockingResponseHandler: ProxyResHandlerWithBody = async (
     throw new Error("Expected body to be an object");
   }
 
-  // Pure passthrough - no transformations
-  res.status(200).json(body);
+  // Complete raw passthrough - send the exact response back
+  res.status(200).send(body);
 };
 
 function transformAwsTextResponseToOpenAI(
@@ -86,26 +86,17 @@ const preprocessAwsTextRequest: RequestHandler = (req, res, next) => {
   }
 };
 
-const oaiToAwsTextPreprocessor = createPreprocessorMiddleware(
-  { inApi: "openai", outApi: "anthropic-text", service: "aws" },
-  { afterTransform: [maybeReassignModel] }
-);
-
-const oaiToAwsChatPreprocessor = createPreprocessorMiddleware(
-  { inApi: "openai", outApi: "anthropic-chat", service: "aws" },
-  { afterTransform: [maybeReassignModel] }
-);
+const oaiToNativePreprocessor = createPreprocessorMiddleware({
+  inApi: "openai",
+  outApi: "openai",
+  service: "aws",
+});
 
 /**
- * Routes an OpenAI prompt to either the legacy Claude text completion endpoint
- * or the new Claude chat completion endpoint, based on the requested model.
+ * Routes an OpenAI prompt directly without API transformation
  */
 const preprocessOpenAICompatRequest: RequestHandler = (req, res, next) => {
-  if (req.body.model?.includes("claude-3")) {
-    oaiToAwsChatPreprocessor(req, res, next);
-  } else {
-    oaiToAwsTextPreprocessor(req, res, next);
-  }
+  oaiToNativePreprocessor(req, res, next);
 };
 
 const awsClaudeRouter = Router();
